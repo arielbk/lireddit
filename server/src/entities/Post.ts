@@ -1,6 +1,7 @@
 import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
 import { ObjectType, Field, Int } from "type-graphql";
 
+// 👇 these are stacked ts decorators from mikro-orm and type-graphql
 @ObjectType()
 @Entity()
 export class Post {

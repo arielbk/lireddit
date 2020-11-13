@@ -1,7 +1,7 @@
 import { Post } from "./entities/Post";
-import { __prod__ } from "./constants";
 import { MikroORM } from "@mikro-orm/core";
 import path from "path";
+import { __prod__ } from "./constants";
 
 export default {
   migrations: {
@@ -12,4 +12,5 @@ export default {
   dbName: "lireddit",
   type: "postgresql",
   debug: !__prod__,
+  // this will give us autocompletion for the init function 👇
 } as Parameters<typeof MikroORM.init>[0];

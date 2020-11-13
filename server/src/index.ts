@@ -1,7 +1,6 @@
-import "reflect-metadata";
+// import "reflect-metadata";
 import { MikroORM } from "@mikro-orm/core";
 import { __prod__ } from "./constants";
-// import { Post } from "./entities/Post";
 import mikroConfig from "./mikro-orm.config";
 import express from "express";
 import { ApolloServer } from "apollo-server-express";
@@ -11,6 +10,8 @@ import { PostResolver } from "./resolvers/post";
 
 const main = async () => {
   const orm = await MikroORM.init(mikroConfig);
+  // run `npx mikro-orm migration:create` to create our migration schema
+  // 👇 this will run our migration when the app starts
   await orm.getMigrator().up();
 
   const app = express();
