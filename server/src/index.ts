@@ -1,4 +1,3 @@
-// import "reflect-metadata";
 import { MikroORM } from "@mikro-orm/core";
 import { __prod__ } from "./constants";
 import mikroConfig from "./mikro-orm.config";
@@ -9,6 +8,11 @@ import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
 
+import redis from 'redis';
+import session from 'express-session';
+import connectRedis from 'connect-redis';
+import { MyContext } from "./types";
+
 const main = async () => {
   const orm = await MikroORM.init(mikroConfig);
   // run `npx mikro-orm migration:create` to create our migration schema
@@ -17,12 +21,36 @@ const main = async () => {
 
   const app = express();
 
+  const RedisStore = connectRedis(session)
+  const redisClient = redis.createClient()
+
+  app.use(
+    session({
+      name: 'qid',
+      store: new RedisStore({
+        // keep sessions alive forever
+        disableTouch: true,
+        client: redisClient
+      }),
+      cookie: {
+        maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
+        // for security, we can't access the cookie through js
+        httpOnly: true,
+        sameSite: 'lax', // protect against csrf
+        secure: __prod__, // locally we use localhost (not https)
+      },
+      secret: 'akejncvkbdvalewg23r',
+      resave: false,
+      saveUninitialized: true,
+    })
+  );
+
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: () => ({ em: orm.em }),
+    context: ({req, res}): MyContext => ({ em: orm.em, req, res }),
   });
 
   apolloServer.applyMiddleware({ app });
