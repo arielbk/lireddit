@@ -74,7 +74,7 @@ export class UserResolver {
     } catch(err) {
       console.log(err.message);
       // checking if the error tells us this is a duplicate username
-      if (err.code === '23505') {
+      if (err.detail.includes('already exists')) {
         return {
           errors: [
             {
