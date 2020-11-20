@@ -3,6 +3,7 @@ import { Resolver, Mutation, InputType, Field, Arg, Ctx, ObjectType, Query } fro
 // apparently this is more secure than bcrypt
 import argon2 from 'argon2';
 import { User } from "../entities/User";
+import { COOKIE_NAME } from "../constants";
 
 // ! Object types are returned from mutations, input types are for arguments
 
@@ -123,5 +124,20 @@ export class UserResolver {
     return {
       user,
     };
+  }
+
+  @Mutation(() => Boolean)
+  logout(
+    @Ctx() { req, res }: MyContext
+  ) {
+    return new Promise(resolve => req.session.destroy((err: any) => {
+      // destroy cookie even if session is not destroyed
+      res.clearCookie(COOKIE_NAME);
+      if (err) {
+        console.log(err);
+        return resolve(false)
+      }
+      return resolve(true);
+    }));
   }
 }
