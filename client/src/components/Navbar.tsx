@@ -1,12 +1,16 @@
-import { Box, Button, Flex, Link } from "@chakra-ui/react"
+import { Box, Button, Flex, Link } from '@chakra-ui/react';
 import NextLink from 'next/link';
-import { useLogoutMutation, useMeQuery } from "../generated/graphql";
+import { useLogoutMutation, useMeQuery } from '../generated/graphql';
+import { isServer } from '../utils/isServer';
 
 interface NavBarProps {}
 
 export const NavBar: React.FC<NavBarProps> = ({}) => {
-  const [{fetching: logoutFetching}, logout] = useLogoutMutation();
-  const [{ data, fetching }] = useMeQuery();
+  const [{ fetching: logoutFetching }, logout] = useLogoutMutation();
+  const [{ data, fetching }] = useMeQuery({
+    //! this request won't run on the server (in SSR mode) but will in the browser
+    pause: isServer(),
+  });
 
   let body = null;
 
@@ -28,20 +32,16 @@ export const NavBar: React.FC<NavBarProps> = ({}) => {
   } else {
     body = (
       <Flex>
-        <Box mr={2}>
-          {data.me.username}
-        </Box>
-        <Button variant='link' onClick={() => logout()} isLoading={logoutFetching}>
+        <Box mr={2}>{data.me.username}</Box>
+        <Button variant="link" onClick={() => logout()} isLoading={logoutFetching}>
           logout
         </Button>
       </Flex>
-    )
+    );
   }
   return (
-    <Flex bg='tan' p={4} >
-      <Box ml="auto">
-        {body}
-      </Box>
+    <Flex bg="tan" p={4}>
+      <Box ml="auto">{body}</Box>
     </Flex>
-  )
-}
+  );
+};
