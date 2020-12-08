@@ -1,4 +1,4 @@
-import { Button } from '@chakra-ui/react';
+import { Box, Button } from '@chakra-ui/react';
 import { Form, Formik } from 'formik';
 import { withUrqlClient } from 'next-urql';
 import { useRouter } from 'next/router';
@@ -16,9 +16,9 @@ const Register: React.FC<registerProps> = ({}) => {
   return (
     <Wrapper variant="sm">
       <Formik
-        initialValues={{ username: '', password: '' }}
+        initialValues={{ username: '', email: '', password: '' }}
         onSubmit={async (values, { setErrors }) => {
-          const response = await register(values);
+          const response = await register({ options: values });
           if (response.data?.register.errors) setErrors(toErrorMap(response.data.register.errors));
           else if (response.data?.register.user) router.push('/');
         }}
@@ -26,6 +26,9 @@ const Register: React.FC<registerProps> = ({}) => {
         {({ isSubmitting }) => (
           <Form>
             <InputField name="username" placeholder="Username" label="Username" />
+            <Box mt={4}>
+              <InputField name="email" placeholder="email" label="email" />
+            </Box>
             <InputField name="password" placeholder="Password" label="Password" type="password" />
             <Button isLoading={isSubmitting} type="submit" colorScheme="blue" mt={8}>
               Register

@@ -1,20 +1,11 @@
 import { MyContext } from "src/types";
-import { Resolver, Mutation, InputType, Field, Arg, Ctx, ObjectType, Query } from "type-graphql";
+import { Resolver, Mutation, Field, Arg, Ctx, ObjectType, Query } from "type-graphql";
 // apparently this is more secure than bcrypt
 import argon2 from 'argon2';
 import { User } from "../entities/User";
 import { COOKIE_NAME } from "../constants";
-
-// ! Object types are returned from mutations, input types are for arguments
-
-// this is to illustrate another way to define this as a kind of arg object 👇
-@InputType()
-class UsernamePasswordInput { 
-  @Field()
-  username: string
-  @Field()
-  password: string
-}
+import { UsernamePasswordInput } from "./UsernamePasswordInput";
+import { validateRegister } from "../utils/validateRegister";
 
 @ObjectType()
 class FieldError {
@@ -42,7 +33,8 @@ export class UserResolver {
     @Arg('email') email: string,
     @Ctx() {em}: MyContext
   ) {
-    // const user = await em.findOne(User, { email });
+    const user = await em.findOne(User, { email });
+    if (!user) return false;
     return true;
   }
 
@@ -59,26 +51,12 @@ export class UserResolver {
     @Arg('options') options: UsernamePasswordInput,
     @Ctx() { req, em }: MyContext
   ): Promise<UserResponse> {
-    if (options.username.length <= 3) {
-      return {
-        errors: [{
-          field: 'username',
-          message: 'length must be greater than 3',
-        }]
-      }
-    }
-    if (options.password.length <= 4) {
-      return {
-        errors: [{
-          field: 'password',
-          message: 'length must be greater than 4',
-        }]
-      }
-    }
+    const errors = validateRegister(options);
+    if (errors) return { errors };
 
     const hashedPassword = await argon2.hash(options.password);
     // store the username and the _hashed_ password
-    const user = em.create(User, {username: options.username, password: hashedPassword});
+    const user = em.create(User, {username: options.username, email: options.email, password: hashedPassword});
     try {
       await em.persistAndFlush(user);
     } catch(err) {
@@ -103,19 +81,25 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async login(
     // now we can nicely reuse this 👇
-    @Arg('options') options: UsernamePasswordInput,
+    @Arg('usernameOrEmail') usernameOrEmail: string,
+    @Arg('password') password: string,
     @Ctx() {em, req}: MyContext
   ): Promise<UserResponse> {
-    const user = await em.findOne(User, { username: options.username });
+    const user = await em.findOne(
+      User,
+      usernameOrEmail.includes('@')
+        ? { email: usernameOrEmail }
+        : { username: usernameOrEmail }
+    );
     if (!user) {
       return {
         errors: [{
-          field: 'username',
+          field: 'usernameOrEmail',
           message: `that username doesn't exist`
         }]
       };
     }
-    const valid = await argon2.verify(user.password, options.password);
+    const valid = await argon2.verify(user.password, password);
     if (!valid) {
       return {
         errors: [

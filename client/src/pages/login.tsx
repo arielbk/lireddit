@@ -16,16 +16,16 @@ const Login: React.FC<loginProps> = ({}) => {
   return (
     <Wrapper variant="sm">
       <Formik
-        initialValues={{ username: '', password: '' }}
+        initialValues={{ usernameOrEmail: '', password: '' }}
         onSubmit={async (values, { setErrors }) => {
-          const response = await login({ options: values });
+          const response = await login(values);
           if (response.data?.login.errors) setErrors(toErrorMap(response.data.login.errors));
           else if (response.data?.login.user) router.push('/');
         }}
       >
         {({ isSubmitting }) => (
           <Form>
-            <InputField name="username" placeholder="Username" label="Username" />
+            <InputField name="usernameOrEmail" placeholder="Username or email" label="Username or email" />
             <InputField name="password" placeholder="Password" label="Password" type="password" />
             <Button isLoading={isSubmitting} type="submit" colorScheme="blue" mt={8}>
               Login
