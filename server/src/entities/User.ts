@@ -1,32 +1,31 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
-import { ObjectType, Field, Int } from "type-graphql";
+import { Field, Int, ObjectType } from "type-graphql";
+import { BaseEntity, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
-// 👇 these are stacked ts decorators from mikro-orm and type-graphql
+// 👇 these are stacked ts decorators from typeorm and type-graphql
 @ObjectType()
 @Entity()
-export class User {
+export class User  extends BaseEntity{
   @Field(() => Int)
-  @PrimaryKey()
+  @PrimaryGeneratedColumn()
   id!: number;
 
   @Field(() => String)
-  @Property({ type: "date" })
-  createdAt = new Date();
+  @CreateDateColumn()
+  createdAt: Date;
 
   @Field(() => String)
-  @Property({ type: "date", onUpdate: () => new Date() })
-  updatedAt = new Date();
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @Field()
-  // usernames should be unique! 👇
-  @Property({ type: "text", unique: true })
+  @Column({ unique: true })
   username!: string;
   
   @Field()
-  @Property({ type: "text", unique: true })
+  @Column({ unique: true })
   email!: string;
   
   // NOT a graphql field!
-  @Property({ type: "text" })
+  @Column()
   password!: string;
 }

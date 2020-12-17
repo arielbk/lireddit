@@ -21,7 +21,7 @@ const ForgotPassword: React.FC<{}> = ({}) => {
       >
         {({ isSubmitting }) =>
           isComplete ? (
-            <Box>We&apos;ve sent an address to that address to reset your password </Box>
+            <Box>We&apos;ve sent an email to that address to reset your password </Box>
           ) : (
             <Form>
               <InputField name="email" placeholder="email" label="Email" type="email" />
