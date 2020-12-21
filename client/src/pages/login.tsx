@@ -20,8 +20,15 @@ const Login: React.FC<loginProps> = ({}) => {
         initialValues={{ usernameOrEmail: '', password: '' }}
         onSubmit={async (values, { setErrors }) => {
           const response = await login(values);
-          if (response.data?.login.errors) setErrors(toErrorMap(response.data.login.errors));
-          else if (response.data?.login.user) router.push('/');
+          if (response.data?.login.errors) {
+            setErrors(toErrorMap(response.data.login.errors));
+          } else if (response.data?.login.user) {
+            if (typeof router.query.next === 'string') {
+              router.push(router.query.next);
+            } else {
+              router.push('/');
+            }
+          }
         }}
       >
         {({ isSubmitting }) => (
