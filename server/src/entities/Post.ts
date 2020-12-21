@@ -1,5 +1,6 @@
 import { ObjectType, Field, Int } from "type-graphql";
-import { BaseEntity, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { BaseEntity, Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { User } from "./User";
 
 // 👇 these are stacked ts decorators from typeorm and type-graphql
 @ObjectType()
@@ -12,6 +13,21 @@ export class Post extends BaseEntity {
   @Field(() => String)
   @CreateDateColumn()
   createdAt: Date;
+
+  @Field()
+  @Column()
+  text!: string;
+
+  @Field()
+  @Column({ type: 'int', default: 0 })
+  points!: number;
+
+  @Field()
+  @Column()
+  creatorId: number;
+  
+  @ManyToOne(() => User, user => user.posts)
+  creator: User;
 
   @Field(() => String)
   @UpdateDateColumn()
