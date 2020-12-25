@@ -16,6 +16,10 @@ export class Post extends BaseEntity {
 
   @Field()
   @Column()
+  title!: string;
+
+  @Field()
+  @Column()
   text!: string;
 
   @Field()
@@ -32,8 +36,4 @@ export class Post extends BaseEntity {
   @Field(() => String)
   @UpdateDateColumn()
   updatedAt: Date;
-
-  @Field()
-  @Column()
-  title!: string;
 }

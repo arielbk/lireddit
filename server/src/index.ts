@@ -14,10 +14,11 @@ import { MyContext } from "./types";
 import { createConnection } from 'typeorm';
 import { Post } from "./entities/Post";
 import { User } from "./entities/User";
+import path from 'path';
 
 const main = async () => {
   
-  await createConnection({
+  const conn = await createConnection({
     type: 'postgres',
     database: 'lireddit2',
     username: 'postgres',
@@ -25,8 +26,13 @@ const main = async () => {
     logging: true,
     // 👇 automatically does migrations
     synchronize: true,
-    entities: [Post, User]
+    migrations: [path.join(__dirname, './migrations/*')],
+    entities: [Post, User] 
   });
+
+  conn.runMigrations();
+
+  // await Post.delete({});
   
   const app = express();
 
