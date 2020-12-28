@@ -8,6 +8,7 @@ import {
   InputType,
   Int,
   Mutation,
+  ObjectType,
   Query,
   Resolver,
   Root,
@@ -24,6 +25,14 @@ class PostInput {
   text: string;
 }
 
+@ObjectType()
+class PaginatedPosts {
+  @Field(() => [Post])
+  posts: Post[];
+  @Field(() => Boolean)
+  hasMore: boolean;
+}
+
 @Resolver(Post)
 export class PostResolver {
   @FieldResolver(() => String)
@@ -32,12 +41,12 @@ export class PostResolver {
   }
 
   // typescript type is set here 👇
-  @Query(() => [Post])
+  @Query(() => PaginatedPosts)
   // graphql type is set here 👇
   async posts(
     @Arg('limit', () => Int) limit: number,
     @Arg('cursor', () => String, { nullable: true }) cursor: string | null,
-  ): Promise<Post[]> {
+  ): Promise<PaginatedPosts> {
     const realLimit = Math.min(50, limit);
     // it's just easy to build these paginated queries with the query builder
     const qb = getConnection()
@@ -45,11 +54,16 @@ export class PostResolver {
       .createQueryBuilder('p')
       //! we need doubles quotes here for postgres
       .orderBy('"createdAt"', 'DESC')
-      .take(realLimit);
+      // we fetch one more to see if there are any more
+      .take(realLimit + 1);
+
     if (cursor) {
       qb.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
     }
-    return qb.getMany();
+
+    const posts = await qb.getMany();
+
+    return { posts: posts.slice(0, realLimit), hasMore: posts.length === realLimit + 1 };
   }
 
   // this is how we allow null 👇 values in type-graphql
