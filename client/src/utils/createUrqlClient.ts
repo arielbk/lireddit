@@ -2,14 +2,20 @@ import { cacheExchange, Resolver } from '@urql/exchange-graphcache';
 import Router from 'next/router';
 import { dedupExchange, Exchange, fetchExchange } from 'urql';
 import { pipe, tap } from 'wonka';
-import { LoginMutation, LogoutMutation, MeDocument, MeQuery, RegisterMutation } from '../generated/graphql';
+import {
+  LoginMutation,
+  LogoutMutation,
+  MeDocument,
+  MeQuery,
+  RegisterMutation,
+} from '../generated/graphql';
 import { betterUpdateQuery } from './betterUpdateQuery';
 
 export const errorExchange: Exchange = ({ forward }) => (ops$) => {
   return pipe(
     forward(ops$),
     tap(({ error }) => {
-      // If the OperationResult has an error send a request to sentry
+      // If the OperationResult has an error redirect to login
       if (error?.message.includes('not authenticated')) {
         Router.replace('/login');
       }
@@ -39,7 +45,10 @@ export const cursorPagination = (): Resolver => {
     }
 
     const fieldKey = `${fieldName}(${stringifyVariables(fieldArgs)})`;
-    const isInCache = cache.resolve(cache.resolveFieldByKey(entityKey, fieldKey) as string, 'posts');
+    const isInCache = cache.resolve(
+      cache.resolveFieldByKey(entityKey, fieldKey) as string,
+      'posts',
+    );
     info.partial = !isInCache;
     let hasMore = true;
     const results: string[] = [];
@@ -80,30 +89,45 @@ export const createUrqlClient = (ssrExchange: any) => ({
       updates: {
         Mutation: {
           logout: (_result, args, cache, info) => {
-            betterUpdateQuery<LogoutMutation, MeQuery>(cache, { query: MeDocument }, _result, () => ({ me: null }));
+            betterUpdateQuery<LogoutMutation, MeQuery>(
+              cache,
+              { query: MeDocument },
+              _result,
+              () => ({ me: null }),
+            );
           },
           login: (_result, args, cache, info) => {
             0;
-            betterUpdateQuery<LoginMutation, MeQuery>(cache, { query: MeDocument }, _result, (result, query) => {
-              if (result.login.errors) {
-                return query;
-              } else {
-                return {
-                  me: result.login.user,
-                };
-              }
-            });
+            betterUpdateQuery<LoginMutation, MeQuery>(
+              cache,
+              { query: MeDocument },
+              _result,
+              (result, query) => {
+                if (result.login.errors) {
+                  return query;
+                } else {
+                  return {
+                    me: result.login.user,
+                  };
+                }
+              },
+            );
           },
           register: (_result, args, cache, info) => {
-            betterUpdateQuery<RegisterMutation, MeQuery>(cache, { query: MeDocument }, _result, (result, query) => {
-              if (result.register.errors) {
-                return query;
-              } else {
-                return {
-                  me: result.register.user,
-                };
-              }
-            });
+            betterUpdateQuery<RegisterMutation, MeQuery>(
+              cache,
+              { query: MeDocument },
+              _result,
+              (result, query) => {
+                if (result.register.errors) {
+                  return query;
+                } else {
+                  return {
+                    me: result.register.user,
+                  };
+                }
+              },
+            );
           },
         },
       },
