@@ -1,5 +1,3 @@
-import { isAuth } from '../middleware/isAuth';
-import { MyContext } from '../types';
 import {
   Arg,
   Ctx,
@@ -14,8 +12,10 @@ import {
   Root,
   UseMiddleware,
 } from 'type-graphql';
-import { Post } from '../entities/Post';
 import { getConnection } from 'typeorm';
+import { Post } from '../entities/Post';
+import { isAuth } from '../middleware/isAuth';
+import { MyContext } from '../types';
 
 @InputType()
 class PostInput {
@@ -48,22 +48,55 @@ export class PostResolver {
     @Arg('cursor', () => String, { nullable: true }) cursor: string | null,
   ): Promise<PaginatedPosts> {
     const realLimit = Math.min(50, limit);
-    // it's just easy to build these paginated queries with the query builder
-    const qb = getConnection()
-      .getRepository(Post)
-      .createQueryBuilder('p')
-      //! we need doubles quotes here for postgres
-      .orderBy('"createdAt"', 'DESC')
-      // we fetch one more to see if there are any more
-      .take(realLimit + 1);
+
+    const replacements: any[] = [realLimit + 1];
 
     if (cursor) {
-      qb.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
+      replacements.push(new Date(parseInt(cursor)));
     }
 
-    const posts = await qb.getMany();
+    // fetch creator along with post on every request with this query
+    const posts = await getConnection().query(
+      `
+    select p.*,
+    json_build_object(
+      'id', u.id,
+      'username', u.username,
+      'email', u.email,
+      'createdAt', u."createdAt",
+      'updatedAt', u."updatedAt"
+    ) creator
+    from post p
+    inner join public.user u on u.id = p."creatorId"
+    ${cursor ? `where p."createdAt" < $2` : ''}
+    order by p."createdAt" DESC
+    limit $1
+    `,
+      replacements,
+    );
 
-    return { posts: posts.slice(0, realLimit), hasMore: posts.length === realLimit + 1 };
+    // it's just easy to build these paginated queries with the query builder
+    // const qb = getConnection()
+    //   .getRepository(Post)
+    //   .createQueryBuilder('p')
+    //   .innerJoinAndSelect('p.creator', 'u', 'u.id = p."creatorId"')
+    //   //! we need double quotes here for postgres
+    //   .orderBy('p."createdAt"', 'DESC')
+    //   // we fetch one more to see if there are any more
+    //   .take(realLimit + 1);
+
+    // if (cursor) {
+    //   qb.where('p."createdAt" < :cursor', {
+    //     cursor: new Date(parseInt(cursor)),
+    //   });
+    // }
+
+    // const posts = await qb.getMany();
+    console.log(posts);
+    return {
+      posts: posts.slice(0, realLimit),
+      hasMore: posts.length === realLimit + 1,
+    };
   }
 
   // this is how we allow null 👇 values in type-graphql
@@ -75,7 +108,10 @@ export class PostResolver {
   // graphql mutations for changing data on the server
   @Mutation(() => Post)
   @UseMiddleware(isAuth)
-  async createPost(@Arg('input') input: PostInput, @Ctx() { req }: MyContext): Promise<Post> {
+  async createPost(
+    @Arg('input') input: PostInput,
+    @Ctx() { req }: MyContext,
+  ): Promise<Post> {
     return Post.create({ ...input, creatorId: req.session.userId }).save();
   }
 
