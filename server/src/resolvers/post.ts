@@ -14,6 +14,7 @@ import {
 } from 'type-graphql';
 import { getConnection } from 'typeorm';
 import { Post } from '../entities/Post';
+import { Upvote } from '../entities/Upvote';
 import { isAuth } from '../middleware/isAuth';
 import { MyContext } from '../types';
 
@@ -36,8 +37,41 @@ class PaginatedPosts {
 @Resolver(Post)
 export class PostResolver {
   @FieldResolver(() => String)
-  textSnippet(@Root() root: Post) {
+  textSnippet(@Root() root: Post): string {
     return root.text.slice(0, 50);
+  }
+
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuth)
+  async vote(
+    @Arg('postId', () => Int) postId: number,
+    @Arg('value', () => Int) value: number,
+    @Ctx() { req }: MyContext,
+  ): Promise<boolean> {
+    const isUpvote = value > 0;
+    // stop people from hacking the upvotes
+    const realValue = isUpvote ? 1 : -1;
+    const { userId } = req.session;
+    // await Upvote.insert({
+    //   userId,
+    //   postId,
+    //   value: realValue,
+    // });
+    await getConnection().query(
+      `
+    START TRANSACTION;
+
+    insert into upvote ("userId", "postId", value)
+    values (${userId},${postId},${realValue});
+
+    update post
+    set points = points + ${realValue}
+    where id = ${postId};
+
+    COMMIT;
+    `,
+    );
+    return true;
   }
 
   // typescript type is set here 👇
@@ -92,7 +126,7 @@ export class PostResolver {
     // }
 
     // const posts = await qb.getMany();
-    console.log(posts);
+
     return {
       posts: posts.slice(0, realLimit),
       hasMore: posts.length === realLimit + 1,
