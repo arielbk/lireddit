@@ -14,7 +14,6 @@ import {
 } from 'type-graphql';
 import { getConnection } from 'typeorm';
 import { Post } from '../entities/Post';
-import { Upvote } from '../entities/Upvote';
 import { isAuth } from '../middleware/isAuth';
 import { MyContext } from '../types';
 
